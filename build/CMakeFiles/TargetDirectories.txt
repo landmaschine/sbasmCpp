@@ -1,3 +1,0 @@
-C:/Users/leon/Documents/dev/sbasmCpp/build/CMakeFiles/sbasmCpp.dir
-C:/Users/leon/Documents/dev/sbasmCpp/build/CMakeFiles/edit_cache.dir
-C:/Users/leon/Documents/dev/sbasmCpp/build/CMakeFiles/rebuild_cache.dir
