@@ -2,10 +2,12 @@
 
 void Lexer::skipWhiteSpace() {
     while (position < input.length() && std::isspace(input[position])) {
+        // Window whitespace 
         if (input[position] == '\r' && position + 1 < input.length() && input[position + 1] == '\n') {
             line++;
             column = 1;
             position += 2;
+        // Unix whitespace
         } else if (input[position] == '\n') {
             line++;
             column = 1;
