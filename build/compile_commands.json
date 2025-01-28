@@ -1,0 +1,14 @@
+[
+{
+  "directory": "C:/Users/leon/Documents/dev/sbasmCpp/build",
+  "command": "\"C:/Program Files/LLVM/bin/clang++.exe\"  @CMakeFiles/sbasmCpp.dir/includes_CXX.rsp -O0 -g -Xclang -gcodeview -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -std=gnu++14 -O0 -g -o CMakeFiles/sbasmCpp.dir/main.cpp.obj -c C:/Users/leon/Documents/dev/sbasmCpp/main.cpp",
+  "file": "C:/Users/leon/Documents/dev/sbasmCpp/main.cpp",
+  "output": "CMakeFiles/sbasmCpp.dir/main.cpp.obj"
+},
+{
+  "directory": "C:/Users/leon/Documents/dev/sbasmCpp/build",
+  "command": "\"C:/Program Files/LLVM/bin/clang++.exe\"  @CMakeFiles/sbasmCpp.dir/includes_CXX.rsp -O0 -g -Xclang -gcodeview -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -std=gnu++14 -O0 -g -o CMakeFiles/sbasmCpp.dir/assembler/Lexer/Lexer.cpp.obj -c C:/Users/leon/Documents/dev/sbasmCpp/assembler/Lexer/Lexer.cpp",
+  "file": "C:/Users/leon/Documents/dev/sbasmCpp/assembler/Lexer/Lexer.cpp",
+  "output": "CMakeFiles/sbasmCpp.dir/assembler/Lexer/Lexer.cpp.obj"
+}
+]

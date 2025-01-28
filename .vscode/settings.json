@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.zig": "zig",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "locale": "cpp"
+    }
+}
