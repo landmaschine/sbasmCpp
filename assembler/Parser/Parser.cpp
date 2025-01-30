@@ -60,17 +60,39 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
     std::string operand1, operand2;
     bool hasComma = false;
 
-    if(check(TokenType::REGISTER) || check(TokenType::LABEL_REF)) {
+    if (check(TokenType::REGISTER) || check(TokenType::LABEL_REF)) {
         operand1 = advance().value;
+    } else {
+        throw std::runtime_error("Missing first operand for " + opcode + " at line " + std::to_string(instr.line));
     }
 
-    if(check(TokenType::COMMA)) {
+    if (check(TokenType::COMMA)) {
         advance();
         hasComma = true;
+    } else {
+        throw std::runtime_error("Expected comma after first operand for " + opcode + " at line " + std::to_string(instr.line));
     }
 
-    if(check(TokenType::REGISTER) || check(TokenType::NUMBER) || check(TokenType::LABEL_REF)) {
-        operand2 = advance().value;
+    if (opcode == "ld" || opcode == "st") {
+        if (!match(TokenType::BRACKET_OPEN)) {
+            throw std::runtime_error("Expected '[' after comma for " + opcode + " at line " + std::to_string(peek().line));
+        }
+
+        if (check(TokenType::REGISTER)) {
+            operand2 = advance().value;
+        } else {
+            throw std::runtime_error("Expected register inside brackets for " + opcode + " at line " + std::to_string(peek().line));
+        }
+
+        if (!match(TokenType::BRACKET_CLOSE)) {
+            throw std::runtime_error("Expected ']' after register for " + opcode + " at line " + std::to_string(peek().line));
+        }
+    } else {
+        if (check(TokenType::REGISTER) || check(TokenType::NUMBER) || check(TokenType::LABEL_REF)) {
+            operand2 = advance().value;
+        } else {
+            throw std::runtime_error("Unexpected token in second operand for " + opcode + " at line " + std::to_string(peek().line));
+        }
     }
 
     return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, instr.line, instr.column);

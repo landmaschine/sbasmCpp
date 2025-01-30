@@ -3,19 +3,45 @@
 #include "Parser/Parser.h"
 #include "InstructionEncoder/InstructionEncoder.h"
 #include "InstructionEncoder/SymbolTable.h"
+#include <fstream>
+#include <sstream>
+#include <string>
 #include <iomanip>
 
 int main(int argc, const char* argv[]) {
-    std::string input = R"(
+    /*
+    if(argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+    }
+
+    std::ifstream file(argv[1]);
+    if(!file.is_open()) {
+        std::cerr << "Error: Could no open file '" << argv[1] << "'" << std::endl;
+    }
+    */
+
+    std::string asmCode = R"(
         .define LED_ADDRESS 0x1000
         .define HEX_ADDRESS 0x2000
         .define SWI_ADDRESS 0x3000
 
-        START: st r1, [r2]
-            
+        START: mv r1, =DATA
+            mv r2, =0x3
+            add r2, r1
+            sub r2, r1
+
+        DATA:  .word 0xDD
+            .word 0xFF
     )";
 
-    Lexer lexer(input);
+    /*
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string input = buffer.str();
+    file.close();
+    */
+
+    Lexer lexer(asmCode);
     std::vector<Token> tokens = lexer.tokenize();
     std::cout << "Tokens:\n";
     for(const auto& token : tokens) {
@@ -86,25 +112,57 @@ int main(int argc, const char* argv[]) {
             case StatementType::INSTRUCTION: {
                 auto instr = static_cast<Instruction*>(stmt.get());
                 std::cout << "Processing instruction: " << instr->opcode 
-                         << " " << instr->operand1 
-                         << " " << instr->operand2 << std::endl;
-                
+                        << " " << instr->operand1 
+                        << " " << instr->operand2 << std::endl;
+
                 std::string op2 = instr->operand2;
-                if(!op2.empty() && symbolTable.hasDefine(op2)) {
-                    op2 = "#" + std::to_string(symbolTable.getDefineValue(op2));
-                    std::cout << "Resolved symbol to: " << op2 << std::endl;
+                bool isPseudo = false;
+                int resolvedValue = 0;
+
+                    if (instr->opcode == "mv" && (op2.size() > 0 && op2[0] == '=')) {
+                        std::string labelName = op2.substr(1);
+                    
+                    if (symbolTable.hasLabel(labelName)) {
+                        resolvedValue = symbolTable.getLabelAddress(labelName);
+                        isPseudo = true;
+                    }
+                    else if (symbolTable.hasDefine(labelName)) {
+                        resolvedValue = symbolTable.getDefineValue(labelName);
+                        isPseudo = true;
+                    }
+                    else {
+                        throw std::runtime_error("Undefined label or define: " + labelName);
+                    }
+
+                    uint16_t address = static_cast<uint16_t>(resolvedValue);
+                    uint8_t highByte = (address >> 8) & 0xFF;
+                    uint8_t lowByte = address & 0xFF;
+
+                    auto encodedHigh = encoder.encode("mvt", instr->operand1, 
+                                                    std::to_string(highByte), 
+                                                    currentAddress, 0);
+                    auto encodedLow = encoder.encode("add", instr->operand1, 
+                                                std::to_string(lowByte), 
+                                                currentAddress + 1, 0);
+
+                    machineCode.insert(machineCode.end(), encodedHigh.begin(), encodedHigh.end());
+                    machineCode.insert(machineCode.end(), encodedLow.begin(), encodedLow.end());
+                    currentAddress += 2;
+                    continue;
+                }
+                else if (symbolTable.hasLabel(op2)) {
+                    resolvedValue = symbolTable.getLabelAddress(op2);
+                    op2 = std::to_string(resolvedValue);
+                }
+                else if (symbolTable.hasDefine(op2)) {
+                    resolvedValue = symbolTable.getDefineValue(op2);
+                    op2 = std::to_string(resolvedValue);
                 }
 
-                auto encoded = encoder.encode(
-                    instr->opcode,
-                    instr->operand1,
-                    op2,
-                    currentAddress,
-                    symbolTable.hasLabel(op2) ? symbolTable.getLabelAddress(op2) : 0
-                );
-
+                auto encoded = encoder.encode(instr->opcode, instr->operand1, op2, currentAddress, 0);
+                
                 std::cout << "Encoded instruction to: ";
-                for(auto code : encoded) {
+                for (auto code : encoded) {
                     std::cout << "0x" << std::hex << code << " ";
                 }
                 std::cout << std::endl;

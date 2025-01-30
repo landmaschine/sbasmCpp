@@ -20,82 +20,85 @@ void Lexer::skipWhiteSpace() {
 }
 
 Token Lexer::parseNumber() {
-    std::string number;
+   std::string number;
     int start_column = column;
 
-    if(input[position] == '#' || input[position] == '=') {
+    if (input[position] == '#' || input[position] == '=') {
         number += input[position];
         position++;
         column++;
     }
 
-    if(position < input.length() && input[position] == '-') {
+    if (position < input.length() && input[position] == '-') {
         number += input[position];
         position++;
         column++;
     }
 
-    if(input[position] == '0' && position + 1 < input.length()) {
-        if(input[position + 1] == 'x' || input[position + 1] == 'b') {
+    if (position < input.length() && (std::isalpha(input[position]) || input[position] == '_')) {
+        while (position < input.length() && isIdentifierChar(input[position])) {
             number += input[position];
-            number += input[position + 1];
-            position += 2;
-            column += 2;
+            position++;
+            column++;
+        }
+    } else {
+        if (position < input.length() && input[position] == '0') {
+            number += input[position];
+            position++;
+            column++;
+            if (position < input.length() && (input[position] == 'x' || input[position] == 'b')) {
+                number += input[position];
+                position++;
+                column++;
+            }
+        }
+
+        while (position < input.length() && (std::isxdigit(input[position]) || input[position] == '-')) {
+            number += input[position];
+            position++;
+            column++;
         }
     }
 
-    while(position < input.length() && (std::isxdigit(input[position]) || input[position] == '-')) {
-        number += input[position];
-        position++;
-        column++;
-    }
-
-    return Token(TokenType::NUMBER, number, line, start_column);
+    return Token(TokenType::NUMBER, number, line, start_column); 
 }
 
 Token Lexer::parseIdentifier() {
-    std::string identifier;
+std::string identifier;
     int start_column = column;
 
-    if(input[position] == '.') {
+    if (input[position] == '.') {
         identifier += input[position];
         position++;
         column++;
     }
 
-    while(position < input.length() && isIdentifierChar(input[position])) {
+    while (position < input.length() && isIdentifierChar(input[position])) {
         identifier += input[position];
         position++;
         column++;
     }
 
-    if(position < input.length() && input[position] == ':') {
+    if (position < input.length() && input[position] == ':') {
         position++;
         column++;
         return Token(TokenType::LABEL, identifier, line, start_column);
     }
 
-    while(position < input.length() && !isIdentifierChar(input[position]) && 
-          input[position] != '/' && input[position] != ',' && 
-          input[position] != '[' && input[position] != ']' && 
-          input[position] != '#' && !std::isdigit(input[position])) {
-        position++;
-        column++;
-    }
 
-    if(identifier[0] == '.' && (identifier == ".word" || identifier == ".define")) {
+    if (identifier[0] == '.' && (identifier == ".word" || identifier == ".define")) {
         return Token(TokenType::DIRECTIVE, identifier, line, start_column);
     }
 
-    if(identifier[0] == 'r' && identifier.length() == 2 && std::isdigit(identifier[1]) && (identifier[1] - '0') <= 7) {
+    if (identifier[0] == 'r' && identifier.length() == 2 && std::isdigit(identifier[1]) && (identifier[1] - '0') <= 7) {
         return Token(TokenType::REGISTER, identifier, line, start_column);
     }
 
-    if(identifier == "sp" || identifier == "lr" || identifier == "pc") {
+    if (identifier == "sp" || identifier == "lr" || identifier == "pc") {
         return Token(TokenType::REGISTER, identifier, line, start_column);
     }
 
-    if(isInstruction(identifier)) {
+    if (isInstruction(identifier)) {
         return Token(TokenType::INSTRUCTION, identifier, line, start_column);
     }
 
