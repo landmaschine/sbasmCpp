@@ -1,10 +1,9 @@
 #pragma once
 #include "common.h"
 #include "Lexer/Lexer.h"
-
-class Statement;
-class Instruction;
-class Directive;
+#include <memory>
+#include <vector>
+#include <string>
 
 enum class StatementType {
     INSTRUCTION,
@@ -28,10 +27,12 @@ public:
     std::string operand1;
     std::string operand2;
     bool hasComma;
+    bool isLabelImmediate;
 
-    Instruction(const std::string& op, const std::string& op1, const std::string& op2, bool comma, int l, int c)
-        : Statement(StatementType::INSTRUCTION, l, c), opcode(op), operand1(op1), operand2(op2), hasComma(comma) {}
-
+    Instruction(const std::string& op, const std::string& op1, 
+                const std::string& op2, bool comma, bool labelImm, int l, int c)
+        : Statement(StatementType::INSTRUCTION, l, c), 
+          opcode(op), operand1(op1), operand2(op2), hasComma(comma), isLabelImmediate(labelImm) {}
 };
 
 class Directive : public Statement {
@@ -40,8 +41,10 @@ public:
     std::string label;
     std::string value;
 
-    Directive(const std::string& n, const std::string l, const std::string& v, int line, int col)
-        : Statement(StatementType::DIRECTIVE, line, col), name(n), label(l), value(v) {}
+    Directive(const std::string& n, const std::string& l, 
+              const std::string& v, int line, int col)
+        : Statement(StatementType::DIRECTIVE, line, col), 
+          name(n), label(l), value(v) {}
 };
 
 class Label : public Statement {
@@ -59,10 +62,10 @@ private:
 
     Token peek() const;
     Token advance();
+    Token previous() const;
     bool isAtEnd() const;
     bool match(TokenType type);
     bool check(TokenType type) const;
-    Token previous() const;
 
     std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Instruction> parseInstruction();
@@ -71,6 +74,5 @@ private:
 
 public:
     Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0) {}
-
     std::vector<std::unique_ptr<Statement>> parse();
 };

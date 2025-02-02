@@ -1,6 +1,5 @@
 #pragma once
 #include "common.h"
-
 #include <string>
 #include <vector>
 #include <regex>
@@ -8,18 +7,18 @@
 #include <stdexcept>
 
 enum class TokenType {
-    INSTRUCTION,
-    REGISTER,
-    NUMBER,
-    LABEL,
-    LABEL_REF,
-    COMMA,
-    BRACKET_OPEN,
-    BRACKET_CLOSE,
-    DIRECTIVE,
-    COMMENT,
-    EOL,
-    END_OF_FILE,    // not EOF because EOF is a macro in stdio.h
+    INSTRUCTION,      
+    REGISTER,         
+    NUMBER,          
+    LABEL,           
+    LABEL_REF,       
+    LABEL_IMMEDIATE, 
+    COMMA,           
+    BRACKET_OPEN,    
+    BRACKET_CLOSE,   
+    DIRECTIVE,       
+    COMMENT,         
+    END_OF_FILE,     
     INVALID
 };
 
@@ -45,19 +44,19 @@ private:
         "cmp", "lsl", "lsr", "asr", "ror"
     };
 
-    // Helper method
     bool isInstruction(const std::string& str) {
         return std::find(instructions.begin(), instructions.end(), str) != instructions.end();
     }
 
-    //Helper method
     bool isIdentifierChar(char c) {
         return std::isalnum(c) || c == '_' || c == '$';
     }
 
-    void skipWhiteSpace();
-    Token parseNumber();
+    void skipWhitespace();
+    Token parseNumber(bool hasPrefix, bool isLabelImm = false);
+    Token parseLabelImmediate();
     Token parseIdentifier();
+    int64_t parseNumberValue(const std::string& str);
 
 public:
     Lexer(std::string input) : input(std::move(input)), position(0), line(1), column(1) {}
