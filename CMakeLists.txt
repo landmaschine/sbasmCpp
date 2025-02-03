@@ -27,3 +27,23 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -O0
     -g
 )
+
+include(CPack)
+
+set(CPACK_PACKAGE_NAME "sbasmCpp")
+set(CPACK_PACKAGE_VENDOR "LeonW")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "An assembler written in C++, for the qCore architecture")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "sbasmCpp")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
+
+set(CPACK_GENERATOR "NSIS")
+
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+set(CPACK_WIX_PROPERTY_ARPHELPLINK "https://github.com/landmaschine/sbasmCpp")
+set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/landmaschine/sbasmCpp")
