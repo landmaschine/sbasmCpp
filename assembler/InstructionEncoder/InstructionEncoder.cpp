@@ -1,3 +1,8 @@
+// ----------------------------------------------------------------------------
+// Author: LeonW
+// Date: February 3, 2025
+// ----------------------------------------------------------------------------
+
 #include "InstructionEncoder.h"
 
 uint8_t Encoder::parseRegister(const std::string& reg) {

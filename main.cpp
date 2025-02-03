@@ -1,3 +1,13 @@
+// ----------------------------------------------------------------------------
+// Author: LeonW
+// Date: February 3, 2025
+// Description: This file implements the main program for lexical analysis, 
+//              parsing, and encoding machine instructions for a custom CPU.
+//              It reads assembly input, processes the code through a lexer 
+//              and parser, then encodes it into machine code, outputting the 
+//              result to a MIF (Memory Initialization File)
+// ----------------------------------------------------------------------------
+
 #include "common.h"
 #include "Lexer/Lexer.h"
 #include "Parser/Parser.h"

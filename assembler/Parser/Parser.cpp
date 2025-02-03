@@ -1,3 +1,8 @@
+// ----------------------------------------------------------------------------
+// Author: LeonW
+// Date: February 3, 2025
+// ----------------------------------------------------------------------------
+
 #include "Parser.h"
 
 std::unique_ptr<Statement> Parser::parseStatement() {
@@ -33,7 +38,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
     bool isLabelImmediate = false;
     bool isImmediate = false;
 
-    // Branch instructions
     if (opcode == "b" || opcode == "beq" || opcode == "bne" || 
         opcode == "bcc" || opcode == "bcs" || opcode == "bpl" || 
         opcode == "bmi" || opcode == "bl") {
@@ -46,7 +50,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // Stack operations
     if (opcode == "push" || opcode == "pop") {
         if (!check(TokenType::REGISTER)) {
             throw std::runtime_error("Expected register after '" + opcode + 
@@ -57,21 +60,18 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // All other instructions require a register as first operand
     if (!check(TokenType::REGISTER)) {
         throw std::runtime_error("Expected register as first operand for '" + opcode + 
                                "' at line " + std::to_string(instr.line));
     }
     operand1 = advance().value;
 
-    // All remaining instructions require a comma
     if (!match(TokenType::COMMA)) {
         throw std::runtime_error("Expected comma after register for '" + opcode + 
                                "' at line " + std::to_string(instr.line));
     }
     hasComma = true;
 
-    // Memory operations
     if (opcode == "ld" || opcode == "st") {
         if (!match(TokenType::BRACKET_OPEN)) {
             throw std::runtime_error("Expected '[' after comma for '" + opcode + 
@@ -90,7 +90,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // Move operations
     if (opcode == "mv") {
         if (check(TokenType::LABEL_IMMEDIATE) || check(TokenType::NUMBER_IMMEDIATE)) {
             Token labelImm = advance();
@@ -114,7 +113,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // MVT operation (move top)
     if (opcode == "mvt") {
         if (!check(TokenType::NUMBER) && !check(TokenType::NUMBER_IMMEDIATE)) {
             throw std::runtime_error("Expected immediate value after 'mvt' at line " + 
@@ -126,7 +124,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // ALU operations
     if (opcode == "add" || opcode == "sub" || opcode == "and") {
         if (check(TokenType::REGISTER)) {
             operand2 = advance().value;
@@ -143,7 +140,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // Compare operation
     if (opcode == "cmp") {
         if (check(TokenType::REGISTER)) {
             operand2 = advance().value;
@@ -160,7 +156,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // Shift operations
     if (opcode == "lsl" || opcode == "lsr" || opcode == "asr" || opcode == "ror") {
         if (check(TokenType::REGISTER)) {
             operand2 = advance().value;
@@ -177,7 +172,6 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    // If we get here, the instruction is not recognized
     throw std::runtime_error("Unrecognized instruction '" + opcode + 
                            "' at line " + std::to_string(instr.line));
 }
