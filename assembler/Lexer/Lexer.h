@@ -9,7 +9,8 @@
 enum class TokenType {
     INSTRUCTION,      
     REGISTER,         
-    NUMBER,          
+    NUMBER,
+    NUMBER_IMMEDIATE,
     LABEL,           
     LABEL_REF,       
     LABEL_IMMEDIATE, 
@@ -53,8 +54,6 @@ private:
     }
 
     void skipWhitespace();
-    Token parseNumber(bool hasPrefix, bool isLabelImm = false);
-    Token parseLabelImmediate();
     Token parseIdentifier();
     int64_t parseNumberValue(const std::string& str);
 

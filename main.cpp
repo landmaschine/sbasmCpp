@@ -8,7 +8,10 @@
 #include <string>
 #include <iomanip>
 
-void writeMIF(const std::vector<uint16_t>& machineCode, const std::string& outputFile, int depth = 256);
+void writeMIF(const std::vector<uint16_t>& machineCode,
+              const std::vector<bool>& isData,
+              const std::string& outputFile,
+              int depth = 256);
 
 int main(int argc, const char* argv[]) {
     if(argc < 2) {
@@ -92,9 +95,10 @@ int main(int argc, const char* argv[]) {
         }
 
         SymbolTable symbolTable;
-        std::vector<uint16_t> machineCode;
         int currentAddress = 0;
         
+        std::vector<bool> isData;
+
         std::cout << "\n=== First Pass: Symbol Collection ===\n";
         for(const auto& stmt : ast) {
             switch(stmt->type) {
@@ -103,27 +107,42 @@ int main(int argc, const char* argv[]) {
                     std::cout << "Adding label: " << label->name << " at address 0x" 
                              << std::hex << currentAddress << std::dec << "\n";
                     symbolTable.addLabel(label->name, currentAddress);
+                    isData.push_back(false);
                     break;
                 }
-                case StatementType::DIRECTIVE: {
+               case StatementType::DIRECTIVE: {
                     auto directive = static_cast<Directive*>(stmt.get());
                     if(directive->name == ".define") {
-                        int value = std::stoi(directive->value, nullptr, 0);
+                        int64_t value;
+                        std::string valStr = directive->value;
+                        
+                        if (valStr.size() >= 2 && (valStr.substr(0, 2) == "0b" || valStr.substr(0, 2) == "0B")) {
+                            value = std::stoll(valStr.substr(2), nullptr, 2);
+                        }
+                        else if (valStr.size() >= 2 && (valStr.substr(0, 2) == "0x" || valStr.substr(0, 2) == "0X")) {
+                            value = std::stoll(valStr.substr(2), nullptr, 16);
+                        }
+                        else {
+                            value = std::stoll(valStr, nullptr, 0);
+                        }
+
                         std::cout << "Adding define: " << directive->label << " = 0x" 
-                                 << std::hex << value << std::dec << "\n";
+                                << std::hex << value << std::dec << "\n";
                         symbolTable.addDefine(directive->label, value);
+                        isData.push_back(false);
                     } else if(directive->name == ".word") {
                         std::cout << "Word directive at address 0x" 
-                                 << std::hex << currentAddress << std::dec << "\n";
+                                << std::hex << currentAddress << std::dec << "\n";
                         currentAddress++;
+                        isData.push_back(true);
                     }
                     break;
-                }
+                } 
                 case StatementType::INSTRUCTION:
                     auto instr = static_cast<Instruction*>(stmt.get());
                     int numWords = 1;
-
-                    if (instr->opcode == "mv" && !instr->operand2.empty() && instr->operand2[0] == '=') {
+                    
+                    if (instr->opcode == "mv" && instr->isLabelImmediate) {
                         numWords = 2;
                     }
 
@@ -132,11 +151,13 @@ int main(int argc, const char* argv[]) {
                                 << " (size=" << numWords << ")\n";
 
                     currentAddress += numWords;
+                    isData.push_back(false);
                     break;
             }
         }
 
-        
+        Encoder encoder(symbolTable);
+        std::vector<uint16_t> machineCode = encoder.encode(ast);
 
         std::cout << "\n=== Final Machine Code ===\n";
         for (size_t i = 0; i < machineCode.size(); i++) {
@@ -145,7 +166,7 @@ int main(int argc, const char* argv[]) {
                      << machineCode[i] << std::dec << "\n";
         }
 
-        writeMIF(machineCode, outputFile, memoryDepth);
+        writeMIF(machineCode, isData, outputFile, memoryDepth);
         std::cout << "\nAssembly completed successfully. Output written to " << outputFile << "\n";
 
     } catch (const std::exception& e) {
@@ -156,7 +177,10 @@ int main(int argc, const char* argv[]) {
     return 0;
 }
 
-void writeMIF(const std::vector<uint16_t>& machineCode, const std::string& outputFile, int depth) {
+void writeMIF(const std::vector<uint16_t>& machineCode,
+              const std::vector<bool>& isData,
+              const std::string& outputFile,
+              int depth) {
     std::ofstream out(outputFile);
     if (!out.is_open()) {
         throw std::runtime_error("Could not open output file: " + outputFile);
@@ -172,116 +196,122 @@ void writeMIF(const std::vector<uint16_t>& machineCode, const std::string& outpu
     const char* regNames[] = {"r0", "r1", "r2", "r3", "r4", "sp", "lr", "pc"};
     const char* conditions[] = {"b   ", "beq ", "bne ", "bcc ", "bcs ", "bpl ", "bmi ", "bl  "};
 
+    // Iterate over all words that have been generated.
     for (size_t i = 0; i < machineCode.size(); i++) {
-        // Write address
         out << std::hex << std::setw(1) << i;
         out << std::string(i > 0xf ? 6 : 7, ' ');
         
-        // Write instruction word
         out << ": " << std::setw(4) << std::setfill('0') << machineCode[i] << ";"
             << std::string(8, ' ') << "% ";
 
-        uint16_t instr = machineCode[i];
-        uint16_t opcode = (instr >> 13) & 0x7;
-        uint16_t imm = (instr >> 12) & 0x1;
-        uint16_t rX = (instr >> 9) & 0x7;
-        uint16_t rY = instr & 0x7;
-        uint16_t immediate = instr & 0x1FF;
-        
-        switch (opcode) {
-            case 0: // mv
-                if (imm) {
-                    out << "mv   " << regNames[rX] << ", #0x" << std::hex << immediate;
-                } else {
-                    out << "mv   " << regNames[rX] << ", " << regNames[rY];
-                }
-                break;
-
-            case 1: // branch or mvt
-                if (imm) {
-                    out << "mvt  " << regNames[rX] << ", #0x" << std::hex << (immediate & 0xFF);
-                } else {
-                    uint16_t cond = (instr >> 9) & 0x7;
-                    int16_t offset = immediate;
-                    // Sign extend 9-bit offset
-                    if (offset & 0x100) {
-                        offset |= 0xFF00;
-                    }
-                    int target = i + 1 + offset;
-                    out << conditions[cond] << "0x" << std::hex << target;
-                }
-                break;
-
-            case 2: // add
-                if (imm) {
-                    out << "add  " << regNames[rX] << ", #0x" << std::hex << immediate;
-                } else {
-                    out << "add  " << regNames[rX] << ", " << regNames[rY];
-                }
-                break;
-
-            case 3: // sub
-                if (imm) {
-                    out << "sub  " << regNames[rX] << ", #0x" << std::hex << immediate;
-                } else {
-                    out << "sub  " << regNames[rX] << ", " << regNames[rY];
-                }
-                break;
-
-            case 4: // ld/pop
-                if (imm) {
-                    out << "pop  " << regNames[rX];
-                } else {
-                    out << "ld   " << regNames[rX] << ", [" << regNames[rY] << "]";
-                }
-                break;
-
-            case 5: // st/push
-                if (imm) {
-                    out << "push " << regNames[rX];
-                } else {
-                    out << "st   " << regNames[rX] << ", [" << regNames[rY] << "]";
-                }
-                break;
-
-            case 6: // and
-                if (imm) {
-                    out << "and  " << regNames[rX] << ", #0x" << std::hex << immediate;
-                } else {
-                    out << "and  " << regNames[rX] << ", " << regNames[rY];
-                }
-                break;
-
-            case 7: // cmp or shift
-                {
-                    uint16_t shift_flag = (instr >> 8) & 0x1;
-                    uint16_t imm_shift = (instr >> 7) & 0x1;
-                    uint16_t shift_type = (instr >> 5) & 0x3;
-                    uint16_t shift_amount = instr & 0xF;
-
-                    if (shift_flag) {
-                        const char* shift_types[] = {"lsl", "lsr", "asr", "ror"};
-                        out << shift_types[shift_type] << "  " << regNames[rX];
-                        if (imm_shift) {
-                            out << ", #0x" << std::hex << shift_amount;
-                        } else {
-                            out << ", " << regNames[rY];
-                        }
+        // If this word was generated by a .word directive, output a data comment.
+        if (i < isData.size() && isData[i]) {
+            out << "data";
+        }
+        else {
+            // Otherwise, decode it as an instruction.
+            uint16_t instr = machineCode[i];
+            uint16_t opcode = (instr >> 13) & 0x7;
+            uint16_t imm = (instr >> 12) & 0x1;
+            uint16_t rX = (instr >> 9) & 0x7;
+            uint16_t rY = instr & 0x7;
+            uint16_t immediate = instr & 0x1FF;
+            
+            std::ostringstream oss;
+            switch (opcode) {
+                case 0:
+                    if (imm) {
+                        oss << "mv   " << regNames[rX] << ", #0x" << std::hex << immediate;
                     } else {
-                        if (imm) {
-                            // Check if immediate is negative (9-bit signed)
-                            if (immediate & 0x100) {
-                                immediate |= 0xFF00;
-                                out << "cmp  " << regNames[rX] << ", #-0x" << std::hex << (-immediate);
+                        oss << "mv   " << regNames[rX] << ", " << regNames[rY];
+                    }
+                    break;
+
+                case 1:
+                    if (imm) {
+                        oss << "mvt  " << regNames[rX] << ", #0x" << std::hex << (immediate & 0xFF);
+                    } else {
+                        uint16_t cond = (instr >> 9) & 0x7;
+                        int16_t offset = immediate;
+                        if (offset & 0x100) {
+                            offset |= 0xFF00;
+                        }
+                        int target = i + 1 + offset;
+                        oss << conditions[cond] << "0x" << std::hex << target;
+                    }
+                    break;
+
+                case 2:
+                    if (imm) {
+                        oss << "add  " << regNames[rX] << ", #0x" << std::hex << immediate;
+                    } else {
+                        oss << "add  " << regNames[rX] << ", " << regNames[rY];
+                    }
+                    break;
+
+                case 3:
+                    if (imm) {
+                        oss << "sub  " << regNames[rX] << ", #0x" << std::hex << immediate;
+                    } else {
+                        oss << "sub  " << regNames[rX] << ", " << regNames[rY];
+                    }
+                    break;
+
+                case 4:
+                    if (imm) {
+                        oss << "pop  " << regNames[rX];
+                    } else {
+                        oss << "ld   " << regNames[rX] << ", [" << regNames[rY] << "]";
+                    }
+                    break;
+
+                case 5:
+                    if (imm) {
+                        oss << "push " << regNames[rX];
+                    } else {
+                        oss << "st   " << regNames[rX] << ", [" << regNames[rY] << "]";
+                    }
+                    break;
+
+                case 6:
+                    if (imm) {
+                        oss << "and  " << regNames[rX] << ", #0x" << std::hex << immediate;
+                    } else {
+                        oss << "and  " << regNames[rX] << ", " << regNames[rY];
+                    }
+                    break;
+
+                case 7:
+                    {
+                        uint16_t shift_flag = (instr >> 8) & 0x1;
+                        uint16_t imm_shift = (instr >> 7) & 0x1;
+                        uint16_t shift_type = (instr >> 5) & 0x3;
+                        uint16_t shift_amount = instr & 0xF;
+
+                        if (shift_flag) {
+                            const char* shift_types[] = {"lsl", "lsr", "asr", "ror"};
+                            oss << shift_types[shift_type] << "  " << regNames[rX];
+                            if (imm_shift) {
+                                oss << ", #0x" << std::hex << shift_amount;
                             } else {
-                                out << "cmp  " << regNames[rX] << ", #0x" << std::hex << immediate;
+                                oss << ", " << regNames[rY];
                             }
                         } else {
-                            out << "cmp  " << regNames[rX] << ", " << regNames[rY];
+                            if (imm) {
+                                if (immediate & 0x100) {
+                                    immediate |= 0xFF00;
+                                    oss << "cmp  " << regNames[rX] << ", #-0x" << std::hex << (-immediate);
+                                } else {
+                                    oss << "cmp  " << regNames[rX] << ", #0x" << std::hex << immediate;
+                                }
+                            } else {
+                                oss << "cmp  " << regNames[rX] << ", " << regNames[rY];
+                            }
                         }
                     }
-                }
-                break;
+                    break;
+            }
+            out << oss.str();
         }
         out << " %\n";
     }

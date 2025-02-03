@@ -31,92 +31,155 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
     std::string operand1, operand2;
     bool hasComma = false;
     bool isLabelImmediate = false;
+    bool isImmediate = false;
 
-    if (opcode[0] == 'b') {
+    // Branch instructions
+    if (opcode == "b" || opcode == "beq" || opcode == "bne" || 
+        opcode == "bcc" || opcode == "bcs" || opcode == "bpl" || 
+        opcode == "bmi" || opcode == "bl") {
         if (!check(TokenType::LABEL_REF)) {
-            throw std::runtime_error("Expected label after branch instruction at line " + 
-                                   std::to_string(instr.line));
+            throw std::runtime_error("Expected label after branch instruction '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
         }
         operand1 = advance().value;
-        return std::make_unique<Instruction>(opcode, operand1, "", false, false,
+        return std::make_unique<Instruction>(opcode, operand1, "", false, false, false,
                                            instr.line, instr.column);
     }
 
+    // Stack operations
     if (opcode == "push" || opcode == "pop") {
         if (!check(TokenType::REGISTER)) {
-            throw std::runtime_error("Expected register after " + opcode + 
-                                   " at line " + std::to_string(instr.line));
+            throw std::runtime_error("Expected register after '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
         }
         operand1 = advance().value;
-        return std::make_unique<Instruction>(opcode, operand1, "", false, false,
+        return std::make_unique<Instruction>(opcode, operand1, "", false, false, false,
                                            instr.line, instr.column);
     }
 
+    // All other instructions require a register as first operand
     if (!check(TokenType::REGISTER)) {
-        throw std::runtime_error("Expected register at line " + 
-                               std::to_string(peek().line));
+        throw std::runtime_error("Expected register as first operand for '" + opcode + 
+                               "' at line " + std::to_string(instr.line));
     }
     operand1 = advance().value;
 
+    // All remaining instructions require a comma
     if (!match(TokenType::COMMA)) {
-        throw std::runtime_error("Expected comma after " + operand1 + 
-                               " at line " + std::to_string(peek().line));
+        throw std::runtime_error("Expected comma after register for '" + opcode + 
+                               "' at line " + std::to_string(instr.line));
     }
     hasComma = true;
 
+    // Memory operations
     if (opcode == "ld" || opcode == "st") {
         if (!match(TokenType::BRACKET_OPEN)) {
-            throw std::runtime_error("Expected '[' after comma at line " + 
-                                   std::to_string(peek().line));
+            throw std::runtime_error("Expected '[' after comma for '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
         }
         if (!check(TokenType::REGISTER)) {
-            throw std::runtime_error("Expected register inside brackets at line " + 
-                                   std::to_string(peek().line));
+            throw std::runtime_error("Expected register inside brackets for '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
         }
         operand2 = advance().value;
         if (!match(TokenType::BRACKET_CLOSE)) {
-            throw std::runtime_error("Expected ']' after register at line " + 
-                                   std::to_string(peek().line));
+            throw std::runtime_error("Expected ']' after register for '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
         }
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, false, false,
+                                           instr.line, instr.column);
     }
-    else if (opcode == "lsl" || opcode == "lsr" || opcode == "asr" || opcode == "ror") {
-        if (check(TokenType::REGISTER) || check(TokenType::NUMBER)) {
-            operand2 = advance().value;
-        } else {
-            throw std::runtime_error("Expected register or immediate at line " + 
-                                   std::to_string(peek().line));
-        }
-    }
-    else if (opcode == "mv") {
-        if (check(TokenType::LABEL_IMMEDIATE)) {
+
+    // Move operations
+    if (opcode == "mv") {
+        if (check(TokenType::LABEL_IMMEDIATE) || check(TokenType::NUMBER_IMMEDIATE)) {
             Token labelImm = advance();
             operand2 = labelImm.value;
-            isLabelImmediate = true;
+            isImmediate = true;
+            isLabelImmediate = (labelImm.type == TokenType::LABEL_IMMEDIATE);
         }
         else if (check(TokenType::REGISTER)) {
             operand2 = advance().value;
-        } else if (check(TokenType::NUMBER) || check(TokenType::LABEL_REF)) {
-            operand2 = advance().value;
         } 
-        
-        else {
-            throw std::runtime_error("Expected register, numeric immediate, or label immediate at line " + 
-                                   std::to_string(peek().line));
-        }
-    }
-    else {
-        if (check(TokenType::REGISTER)) {
+        else if (check(TokenType::NUMBER)) {
             operand2 = advance().value;
-        } else if(check(TokenType::NUMBER) || check(TokenType::LABEL_REF)) {
+            isImmediate = true;
+        } else if (check(TokenType::LABEL_REF)) {
             operand2 = advance().value;
         } else {
-            throw std::runtime_error("Expected register or numeric immediate at line " + 
-                                   std::to_string(peek().line));
+            throw std::runtime_error("Expected register, numeric immediate, or label immediate after 'mv' at line " + 
+                                   std::to_string(instr.line));
         }
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, isLabelImmediate, isImmediate,
+                                           instr.line, instr.column);
     }
 
-    return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, isLabelImmediate,
-                                       instr.line, instr.column);
+    // MVT operation (move top)
+    if (opcode == "mvt") {
+        if (!check(TokenType::NUMBER) && !check(TokenType::NUMBER_IMMEDIATE)) {
+            throw std::runtime_error("Expected immediate value after 'mvt' at line " + 
+                                   std::to_string(instr.line));
+        }
+        operand2 = advance().value;
+        isImmediate = true;
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, false, isImmediate,
+                                           instr.line, instr.column);
+    }
+
+    // ALU operations
+    if (opcode == "add" || opcode == "sub" || opcode == "and") {
+        if (check(TokenType::REGISTER)) {
+            operand2 = advance().value;
+        }
+        else if (check(TokenType::NUMBER) || check(TokenType::NUMBER_IMMEDIATE)) {
+            operand2 = advance().value;
+            isImmediate = true;
+        }
+        else {
+            throw std::runtime_error("Expected register or immediate value after '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
+        }
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, false, isImmediate,
+                                           instr.line, instr.column);
+    }
+
+    // Compare operation
+    if (opcode == "cmp") {
+        if (check(TokenType::REGISTER)) {
+            operand2 = advance().value;
+        }
+        else if (check(TokenType::NUMBER) || check(TokenType::NUMBER_IMMEDIATE)) {
+            operand2 = advance().value;
+            isImmediate = true;
+        }
+        else {
+            throw std::runtime_error("Expected register or immediate value after 'cmp' at line " + 
+                                   std::to_string(instr.line));
+        }
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, false, isImmediate,
+                                           instr.line, instr.column);
+    }
+
+    // Shift operations
+    if (opcode == "lsl" || opcode == "lsr" || opcode == "asr" || opcode == "ror") {
+        if (check(TokenType::REGISTER)) {
+            operand2 = advance().value;
+        }
+        else if (check(TokenType::NUMBER) || check(TokenType::NUMBER_IMMEDIATE)) {
+            operand2 = advance().value;
+            isImmediate = true;
+        }
+        else {
+            throw std::runtime_error("Expected register or immediate value after '" + opcode + 
+                                   "' at line " + std::to_string(instr.line));
+        }
+        return std::make_unique<Instruction>(opcode, operand1, operand2, hasComma, false, isImmediate,
+                                           instr.line, instr.column);
+    }
+
+    // If we get here, the instruction is not recognized
+    throw std::runtime_error("Unrecognized instruction '" + opcode + 
+                           "' at line " + std::to_string(instr.line));
 }
 
 std::unique_ptr<Directive> Parser::parseDirective() {

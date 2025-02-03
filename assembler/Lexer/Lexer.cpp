@@ -57,7 +57,6 @@ Token Lexer::nextToken() {
 
     char current = input[position];
     int start_column = column;
-
     
     if (current == '#' || current == '=') {
         bool isEquals = (current == '=');
@@ -66,9 +65,7 @@ Token Lexer::nextToken() {
         
         skipWhitespace();
         
-        
         std::string value;
-        
         
         if (position < input.length() && input[position] == '-') {
             value += input[position];
@@ -76,10 +73,8 @@ Token Lexer::nextToken() {
             column++;
         }
 
-        
         if (position < input.length()) {
             if (std::isdigit(input[position])) {
-                
                 while (position < input.length() && 
                        (std::isdigit(input[position]) || 
                         input[position] == 'x' || input[position] == 'X' ||
@@ -89,21 +84,20 @@ Token Lexer::nextToken() {
                     position++;
                     column++;
                 }
-                return Token(isEquals ? TokenType::LABEL_IMMEDIATE : TokenType::NUMBER, 
+                return Token(isEquals ? TokenType::LABEL_IMMEDIATE : TokenType::NUMBER_IMMEDIATE, 
                            value, line, start_column);
             }
             else if (std::isalpha(input[position]) || input[position] == '_' || input[position] == '$') {
-                
                 while (position < input.length() && 
                        (std::isalnum(input[position]) || input[position] == '_' || input[position] == '$')) {
                     value += input[position];
                     position++;
                     column++;
                 }
-                return Token(isEquals ? TokenType::LABEL_IMMEDIATE : TokenType::LABEL_REF, 
-                           value, line, start_column);
+                return Token(isEquals ? TokenType::LABEL_IMMEDIATE : TokenType::NUMBER_IMMEDIATE, value, line, start_column);
             }
         }
+        throw std::runtime_error("Invalid immediate value at line " + std::to_string(line) + ", column " + std::to_string(start_column));
     }
 
     switch (current) {
@@ -177,36 +171,30 @@ Token Lexer::parseIdentifier() {
         position++;
         column++;
     }
-
     
     if (position < input.length() && input[position] == ':') {
         position++;
         column++;
         return Token(TokenType::LABEL, identifier, line, start_column);
     }
-
     
     if (identifier[0] == '.' && (identifier == ".word" || identifier == ".define")) {
         return Token(TokenType::DIRECTIVE, identifier, line, start_column);
     }
-
     
     if (identifier[0] == 'r' && identifier.length() == 2 && 
         std::isdigit(identifier[1]) && (identifier[1] - '0') <= 7) {
         return Token(TokenType::REGISTER, identifier, line, start_column);
     }
-
     
     if (identifier == "sp" || identifier == "lr" || identifier == "pc") {
         return Token(TokenType::REGISTER, identifier, line, start_column);
     }
-
     
     if (isInstruction(identifier)) {
         return Token(TokenType::INSTRUCTION, identifier, line, start_column);
     }
 
-    
     return Token(TokenType::LABEL_REF, identifier, line, start_column);
 }
 

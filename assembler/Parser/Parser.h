@@ -28,11 +28,14 @@ public:
     std::string operand2;
     bool hasComma;
     bool isLabelImmediate;
+    bool isImmediate;
 
     Instruction(const std::string& op, const std::string& op1, 
-                const std::string& op2, bool comma, bool labelImm, int l, int c)
+                const std::string& op2, bool comma, bool labelImm, bool imm,
+                int l, int c)
         : Statement(StatementType::INSTRUCTION, l, c), 
-          opcode(op), operand1(op1), operand2(op2), hasComma(comma), isLabelImmediate(labelImm) {}
+          opcode(op), operand1(op1), operand2(op2), 
+          hasComma(comma), isLabelImmediate(labelImm), isImmediate(imm) {}
 };
 
 class Directive : public Statement {
