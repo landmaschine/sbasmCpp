@@ -60,10 +60,21 @@ make
 
 ## Usage
 ```sh
-./sbasmCpp.exe input_file.s -> produces a.mif
-./sbasmCpp.exe input_file.s output_file -> produces output_file.mif
-```
+# Basic assembly (produces a.mif by default)
+./sbasmCpp input_file.s
 
+# Specify output file
+./sbasmCpp input_file.s -o output.mif
+
+# Enable verbose output
+./sbasmCpp input_file.s -v
+
+# Combine options
+./sbasmCpp input_file.s -o output.mif -v
+
+# Display help
+./sbasmCpp --help
+```
 ---
 
 ## License
