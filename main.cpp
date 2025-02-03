@@ -23,17 +23,58 @@ void writeMIF(const std::vector<uint16_t>& machineCode,
               std::string& outputFile,
               int depth = 256);
 
+void printHelp(const char* programName) {
+    std::cout << "Usage: " << programName << " input_file [options]\n"
+              << "Assemble qCore assembly to MIF format\n\n"
+              << "Options:\n"
+              << " -o <file>, --output <file>              Specify output file (default: a.mif)\n"
+              << " -v, --verbose                           Enable verbose output\n"
+              << " -h, --help                              Display this help message\n"; 
+}
+
 int main(int argc, const char* argv[]) {
-    if(argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> [output_file]" << std::endl;
-        return 1;
+    std::string outputFile = "a.mif";
+    bool verbose = false;
+    std::string inputFile;
+
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "-h" || arg == "--help") {
+            printHelp("sbasmCpp");
+            return 0;
+        }
     }
 
-    std::string outputFile = (argc >= 3) ? argv[2] : "a.mif";
+    if (argc < 2) {
+        std::cerr << "Error: No input file specified.\n"
+                  << "Usage: " << argv[0] << " input_file [options]\n"
+                  << "Use -h for help" << std::endl;
+        return 1;
+    }
+    inputFile = argv[1];
 
-    std::ifstream file(argv[1]);
-    if(!file.is_open()) {
-        std::cerr << "Error: Could not open file '" << argv[1] << "'" << std::endl;
+    for (int i = 2; i < argc; ) {
+        std::string arg = argv[i];
+        if (arg == "-o" || arg == "--output") {
+            if (i + 1 >= argc) {
+                std::cerr << "Error: -o requires an output filename" << std::endl;
+                return 1;
+            }
+            outputFile = argv[i + 1];
+            i += 2;
+        } else if (arg == "-v" || arg == "--verbose") {
+            verbose = true;
+            i += 1;
+        } else {
+            std::cerr << "Error: Unexpected argument '" << arg << "'\n"
+                      << "Use -h for help" << std::endl;
+            return 1;
+        }
+    }
+
+    std::ifstream file(inputFile);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file '" << inputFile << "'" << std::endl;
         return 1;
     }
 
@@ -57,49 +98,57 @@ int main(int argc, const char* argv[]) {
     }
 
     try {
-        std::cout << "\n=== Lexical Analysis ===\n";
+        if (verbose) {
+            std::cout << "\n=== Lexical Analysis ===\n";
+        }
         Lexer lexer(input);
         std::vector<Token> tokens = lexer.tokenize();
 
-        std::cout << "Tokens:\n";
-        for (const auto& token : tokens) {
-            std::cout << "Line " << token.line << ", Col " << token.column 
-                     << ": Type=" << static_cast<int>(token.type) 
-                     << ", Value=\"" << token.value << "\"\n";
+        if (verbose) {
+            std::cout << "Tokens:\n";
+            for (const auto& token : tokens) {
+                std::cout << "Line " << token.line << ", Col " << token.column 
+                         << ": Type=" << static_cast<int>(token.type) 
+                         << ", Value=\"" << token.value << "\"\n";
+            }
         }
 
-        std::cout << "\n=== Parsing ===\n";
+        if (verbose) {
+            std::cout << "\n=== Parsing ===\n";
+        }
         Parser parser(tokens);
         std::vector<std::unique_ptr<Statement>> ast = parser.parse();
 
-        std::cout << "Abstract Syntax Tree:\n";
-        for (const auto& stmt : ast) {
-            std::cout << "Line " << stmt->line << ", Col " << stmt->column << ": ";
-            switch(stmt->type) {
-                case StatementType::LABEL: {
-                    auto label = static_cast<Label*>(stmt.get());
-                    std::cout << "LABEL \"" << label->name << "\"\n";
-                    break;
-                }
-                case StatementType::DIRECTIVE: {
-                    auto directive = static_cast<Directive*>(stmt.get());
-                    std::cout << "DIRECTIVE " << directive->name;
-                    if (!directive->label.empty()) 
-                        std::cout << " " << directive->label;
-                    if (!directive->value.empty()) 
-                        std::cout << " " << directive->value;
-                    std::cout << "\n";
-                    break;
-                }
-                case StatementType::INSTRUCTION: {
-                    auto instr = static_cast<Instruction*>(stmt.get());
-                    std::cout << "INSTRUCTION " << instr->opcode;
-                    if (!instr->operand1.empty()) 
-                        std::cout << " " << instr->operand1;
-                    if (!instr->operand2.empty()) 
-                        std::cout << " " << instr->operand2;
-                    std::cout << "\n";
-                    break;
+        if (verbose) {
+            std::cout << "Abstract Syntax Tree:\n";
+            for (const auto& stmt : ast) {
+                std::cout << "Line " << stmt->line << ", Col " << stmt->column << ": ";
+                switch(stmt->type) {
+                    case StatementType::LABEL: {
+                        auto label = static_cast<Label*>(stmt.get());
+                        std::cout << "LABEL \"" << label->name << "\"\n";
+                        break;
+                    }
+                    case StatementType::DIRECTIVE: {
+                        auto directive = static_cast<Directive*>(stmt.get());
+                        std::cout << "DIRECTIVE " << directive->name;
+                        if (!directive->label.empty()) 
+                            std::cout << " " << directive->label;
+                        if (!directive->value.empty()) 
+                            std::cout << " " << directive->value;
+                        std::cout << "\n";
+                        break;
+                    }
+                    case StatementType::INSTRUCTION: {
+                        auto instr = static_cast<Instruction*>(stmt.get());
+                        std::cout << "INSTRUCTION " << instr->opcode;
+                        if (!instr->operand1.empty()) 
+                            std::cout << " " << instr->operand1;
+                        if (!instr->operand2.empty()) 
+                            std::cout << " " << instr->operand2;
+                        std::cout << "\n";
+                        break;
+                    }
                 }
             }
         }
@@ -109,13 +158,17 @@ int main(int argc, const char* argv[]) {
         
         std::vector<bool> isData;
 
-        std::cout << "\n=== First Pass: Symbol Collection ===\n";
+        if (verbose) {
+            std::cout << "\n=== First Pass: Symbol Collection ===\n";
+        }
         for(const auto& stmt : ast) {
             switch(stmt->type) {
                 case StatementType::LABEL: {
                     auto label = static_cast<Label*>(stmt.get());
-                    std::cout << "Adding label: " << label->name << " at address 0x" 
-                             << std::hex << currentAddress << std::dec << "\n";
+                    if (verbose) {
+                        std::cout << "Adding label: " << label->name << " at address 0x" 
+                                 << std::hex << currentAddress << std::dec << "\n";
+                    }
                     symbolTable.addLabel(label->name, currentAddress);
                     break;
                 }
@@ -135,12 +188,16 @@ int main(int argc, const char* argv[]) {
                             value = std::stoll(valStr, nullptr, 0);
                         }
 
-                        std::cout << "Adding define: " << directive->label << " = 0x" 
-                                << std::hex << value << std::dec << "\n";
+                        if (verbose) {
+                            std::cout << "Adding define: " << directive->label << " = 0x" 
+                                    << std::hex << value << std::dec << "\n";
+                        }
                         symbolTable.addDefine(directive->label, value);
                     } else if(directive->name == ".word") {
-                        std::cout << "Word directive at address 0x" 
-                                << std::hex << currentAddress << std::dec << "\n";
+                        if (verbose) {
+                            std::cout << "Word directive at address 0x" 
+                                    << std::hex << currentAddress << std::dec << "\n";
+                        }
                         currentAddress++;
                         isData.push_back(true);
                     }
@@ -154,9 +211,11 @@ int main(int argc, const char* argv[]) {
                         numWords = 2;
                     }
 
-                    std::cout << "Instruction at address 0x" 
-                                << std::hex << currentAddress << std::dec 
-                                << " (size=" << numWords << ")\n";
+                    if (verbose) {
+                        std::cout << "Instruction at address 0x" 
+                                    << std::hex << currentAddress << std::dec 
+                                    << " (size=" << numWords << ")\n";
+                    }
 
                     currentAddress += numWords;
 
@@ -170,11 +229,13 @@ int main(int argc, const char* argv[]) {
         Encoder encoder(symbolTable);
         std::vector<uint16_t> machineCode = encoder.encode(ast);
 
-        std::cout << "\n=== Final Machine Code ===\n";
-        for (size_t i = 0; i < machineCode.size(); i++) {
-            std::cout << " " << std::hex << std::setw(3) << std::setfill('0') << i 
-                     << ":  " << std::setw(4) << std::setfill('0') 
-                     << machineCode[i] << std::dec << "\n";
+        if (verbose) {
+            std::cout << "\n=== Final Machine Code ===\n";
+            for (size_t i = 0; i < machineCode.size(); i++) {
+                std::cout << " " << std::hex << std::setw(3) << std::setfill('0') << i 
+                         << ":  " << std::setw(4) << std::setfill('0') 
+                         << machineCode[i] << std::dec << "\n";
+            }
         }
 
         writeMIF(machineCode, isData, outputFile, memoryDepth);
