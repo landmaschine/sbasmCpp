@@ -64,8 +64,8 @@ Usage
         The output file name (the file where the MIF is produced).
     
     Example:
-        sbasm.py input_file.s output_file.mif
-        sbasm.py input_file.s                        // produces output file a.mif
+        sbasmCpp.exe input_file.s -> produces: a.mif
+        sbasmCpp.exe input_file.s -o output_file.mif
 
 4)  Bit width
 
