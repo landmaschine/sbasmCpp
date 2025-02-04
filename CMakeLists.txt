@@ -28,6 +28,12 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -g
 )
 
+target_link_options(${PROJECT_NAME} PRIVATE 
+    -static-libstdc++
+    -static-libgcc
+    -static
+)
+
 include(CPack)
 
 set(CPACK_PACKAGE_NAME "sbasmCpp")
