@@ -27,6 +27,7 @@ Usage
     push rX        --r5, then memory at address in r5 <- rX
     and rX, rY     rX <- rX & rY
     and rX, #D     rX <- rX & D
+    xor rX, rY     rX <- rX ^ rY
     cmp rX, rY     performs rX - rY to sets flags
     cmp rX, #D     performs rX - D to set flags
     lsl rX, rY     shifts rX left the number of times specified in rY[3:0]
@@ -118,6 +119,9 @@ Usage
     asr rX, #D:   1110XXX11100DDDD
     ror rX, rY:   1110XXX101100YYY
     ror rX, #D:   1110XXX11110DDDD
+    xor rX, rY:   1110XXX100010YYY
+
+    halt          1110---11111----
 
 6) Assembler Directives and Labels
 

@@ -31,6 +31,7 @@ private:
     static constexpr uint16_t AND_IMM  = 0xD000;
     static constexpr uint16_t CMP_REG  = 0xE000;
     static constexpr uint16_t CMP_IMM  = 0xF000;
+    static constexpr uint16_t XOR_REG  = 0xE110;
 
     uint8_t parseRegister(const std::string& reg);
 
