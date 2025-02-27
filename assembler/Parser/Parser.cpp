@@ -156,11 +156,14 @@ std::unique_ptr<Instruction> Parser::parseInstruction() {
                                            instr.line, instr.column);
     }
 
-    if (opcode == "lsl" || opcode == "lsr" || opcode == "asr" || opcode == "ror") {
+    if (opcode == "lsl" || opcode == "lsr" || opcode == "asr" || opcode == "ror" || opcode == "xor") {
         if (check(TokenType::REGISTER)) {
             operand2 = advance().value;
         }
         else if (check(TokenType::NUMBER) || check(TokenType::NUMBER_IMMEDIATE)) {
+            if(opcode == "xor") {
+                throw std::runtime_error("XOR instruction does not support immediate values '" + opcode + "' at line " + std::to_string(instr.line));
+            }
             operand2 = advance().value;
             isImmediate = true;
         }

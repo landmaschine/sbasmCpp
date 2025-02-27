@@ -167,6 +167,10 @@ void Encoder::encodeALUInstruction(Instruction* instr, const uint8_t rX) {
     } else if (instr->opcode == "and") {
         baseOpcode = instr->isImmediate ? AND_IMM : AND_REG;
         context = "and";
+    } else if(instr->opcode == "xor") {
+        baseOpcode = XOR_REG;
+        instr->isImmediate = false;
+        context = "xor";
     } else {
         throw std::runtime_error("Unknown ALU instruction: " + instr->opcode);
     }
@@ -264,19 +268,16 @@ void Encoder::encodeInstruction(Instruction* instr) {
         else if (instr->opcode == "mvt") {
             encodeMovTopInstruction(instr, rX);
         }
-        else if (instr->opcode == "add" || instr->opcode == "sub" || 
-                    instr->opcode == "and") {
+        else if (instr->opcode == "add" || instr->opcode == "sub" || instr->opcode == "and" || instr->opcode == "xor") {
             encodeALUInstruction(instr, rX);
         }
-        else if (instr->opcode == "ld" || instr->opcode == "st" ||
-                    instr->opcode == "pop" || instr->opcode == "push") {
+        else if (instr->opcode == "ld" || instr->opcode == "st" || instr->opcode == "pop" || instr->opcode == "push") {
             encodeMemoryInstruction(instr, rX);
         }
         else if (instr->opcode == "cmp") {
             encodeCompareInstruction(instr, rX);
         }
-        else if (instr->opcode == "lsl" || instr->opcode == "lsr" ||
-                    instr->opcode == "asr" || instr->opcode == "ror") {
+        else if (instr->opcode == "lsl" || instr->opcode == "lsr" || instr->opcode == "asr" || instr->opcode == "ror") {
             encodeShiftInstruction(instr, rX);
         }
         else {

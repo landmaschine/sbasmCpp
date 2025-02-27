@@ -46,7 +46,7 @@ private:
 
     const std::vector<std::string> instructions = {
         "mv", "b", "beq", "bne", "bcc", "bcs", "bpl", "bmi", "bl",
-        "mvt", "add", "sub", "ld", "pop", "st", "push", "and",
+        "mvt", "add", "sub", "ld", "pop", "st", "push", "and", "xor",
         "cmp", "lsl", "lsr", "asr", "ror"
     };
 
