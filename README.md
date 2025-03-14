@@ -58,6 +58,29 @@ make
 
 ---
 
+#### Editing enviroment Variables
+If you want to use the assembler globaly, follow these steps:
+1. Press the Windows Key and search for: `edit the system enviroment variables`
+2. Then press on the `Enviroment Variables...` button
+3. Under the Path entry in User Variables click `Edit`
+4. Then a new window opens, press `New`
+5. Then go to the installation directory, standard installation path: `C:\Program Files\sbasmCpp\bin`
+6. Press okay and close the windows.
+Now the assembler should be available globally on you system on Windows.
+
+# Setting Up Global Access to the Assembler on Windows 
+
+To use the assembler from any command prompt on Windows:
+
+1. Open Environment Variables by pressing the Windows key and typing `environment variables`
+2. Select "Edit the system environment variables"
+3. In the System Properties window, click the "Environment Variables..." button
+4. Under "User variables," find and select the "Path" variable, then click "Edit"
+5. Click "New" and add the assembler's installation directory: `C:\Program Files\sbasmCpp\bin`
+6. Click "OK" on all open windows to save your changes
+
+You can now run the assembler from any command prompt without specifying its full path.
+
 ## Usage
 ```sh
 # Basic assembly (produces a.mif by default)
