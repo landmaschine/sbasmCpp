@@ -58,16 +58,6 @@ make
 
 ---
 
-#### Editing enviroment Variables
-If you want to use the assembler globaly, follow these steps:
-1. Press the Windows Key and search for: `edit the system enviroment variables`
-2. Then press on the `Enviroment Variables...` button
-3. Under the Path entry in User Variables click `Edit`
-4. Then a new window opens, press `New`
-5. Then go to the installation directory, standard installation path: `C:\Program Files\sbasmCpp\bin`
-6. Press okay and close the windows.
-Now the assembler should be available globally on you system on Windows.
-
 # Setting Up Global Access to the Assembler on Windows 
 
 To use the assembler from any command prompt on Windows:
