@@ -75,7 +75,6 @@ enable_testing()
 include(GoogleTest)
 gtest_discover_tests(sbasmCpp_tests)
 
-
 include(CPack)
 set(CPACK_PACKAGE_NAME "sbasmCpp")
 set(CPACK_PACKAGE_VENDOR "LeonW")
