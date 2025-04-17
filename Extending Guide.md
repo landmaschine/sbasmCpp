@@ -36,7 +36,7 @@ For special instructions like XOR, bits 8-0 have specific meanings:
 [8]     Mode flag (1 for shifts and XOR)
 [7]     Immediate/Register mode for shifts
 [6-4]   Operation type (for shifts/XOR)
-[3-0]   Immediate value or Register Y
+[3-0]   Register Y
 ```
 
 ## Step-by-Step Process
